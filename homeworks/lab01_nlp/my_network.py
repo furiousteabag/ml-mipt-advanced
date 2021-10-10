@@ -3,8 +3,8 @@ import torch.nn as nn
 import torch.optim as optim
 
 import torchtext
-from torchtext.datasets import TranslationDataset, Multi30k
-from torchtext.data import Field, BucketIterator
+#from torchtext.datasets import TranslationDataset, Multi30k
+#from torchtext.data import Field, BucketIterator
 
 import random
 import math
