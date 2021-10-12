@@ -9,3 +9,4 @@ data/
 .data/
 *.pt
 *.vector_cache/
+logs/
