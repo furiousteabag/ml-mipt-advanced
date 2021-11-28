@@ -1,4 +1,4 @@
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 from sklearn.base import TransformerMixin
 from typing import List, Union
 import numpy as np
@@ -18,6 +18,7 @@ class BoW(TransformerMixin):
         :param k: number of most frequent tokens to use
         """
         self.k = k
+
         # list of k most frequent tokens
         self.bow = None
 
@@ -28,7 +29,11 @@ class BoW(TransformerMixin):
         # task: find up to self.k most frequent tokens in texts_train,
         # sort them by number of occurences (highest first)
         # store most frequent tokens in self.bow
-        raise NotImplementedError
+        counter = Counter()
+        for text in X:
+            counter.update(text.split())
+
+        self.bow = [token for token, _ in counter.most_common()[:self.k]]
 
         # fit method must always return self
         return self
@@ -40,8 +45,11 @@ class BoW(TransformerMixin):
         :return bow_feature: feature vector, made by bag of words
         """
 
-        result = None
-        raise NotImplementedError
+        result = [0] * self.k
+        for token in text.split():
+            if token in self.bow:
+                result[self.bow.index(token)] += 1
+
         return np.array(result, "float32")
 
     def transform(self, X: np.ndarray, y=None) -> np.ndarray:
@@ -74,13 +82,27 @@ class TfIdf(TransformerMixin):
         self.normalize = normalize
 
         # self.idf[term] = log(total # of documents / # of documents with term in it)
-        self.idf = OrderedDict()
+        self.idf = {}
 
     def fit(self, X: np.ndarray, y=None):
         """
         :param X: array of texts to be trained on
         """
-        raise NotImplementedError
+        
+        for text in X:
+            for token in text.split():
+                if token in self.idf:
+                    self.idf[token] += 1
+                else:
+                    self.idf[token] = 1
+
+        self.idf = {k: v for k, v in sorted(self.idf.items(), key=lambda item: -item[1])}
+
+        if self.k is not None:
+            self.idf = {k: np.log(len(X) / v) for k, v in list(self.idf.items())[:self.k]}
+        else:
+            self.k = len(self.idf)
+            self.idf = {k: np.log(len(X) / v) for k, v in self.idf.items()}
 
         # fit method must always return self
         return self
@@ -92,10 +114,18 @@ class TfIdf(TransformerMixin):
         :param text: text to be transformed
         :return tf_idf: tf-idf features
         """
+        result = [0] * self.k
 
-        result = None
-        raise NotImplementedError
-        return np.array(result, "float32")
+        for token, n in Counter(text.split()).items():
+            if token in self.idf:
+                result[list(self.idf.keys()).index(token)] = n * self.idf[token] 
+
+        result = np.array(result, "float32")
+
+        if self.normalize == True:
+            result = result / (np.linalg.norm(result) + 1e-6)
+        
+        return result
 
     def transform(self, X: np.ndarray, y=None) -> np.ndarray:
         """
